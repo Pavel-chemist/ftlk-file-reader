@@ -22,8 +22,6 @@ fn main() {
     let mut menu = menu::SysMenuBar::default().with_size(wind.width(), 35);
     menu.set_frame(enums::FrameType::FlatBox);
 
-
-
     menu.add_emit(
         "&File/Open\t",
         enums::Shortcut::Ctrl | 'o',
@@ -110,18 +108,12 @@ fn print_file_buffer(buff: Vec<u8>) -> String {
     let mut formatted_string: String = String::new();
 
     for j in 0..(buff.len() / 16 + 1) {
-        /* if (j % 16) == 0 {
-            println!("Block #{}", j / 16 + 1);
-        } */
-
-        // print!("{}\t|  ", j + 1);
         formatted_string.push_str(&(j + 1).to_string());
         formatted_string.push_str("\t|  ");
 
         for i in 0..16 {
             index = j * 16 + i;
             if index < buff.len() {
-                // print!("{} ", byte_to_hex_string(buff[index]));
                 formatted_string.push_str(&byte_to_hex_string(buff[index]));
                 formatted_string.push(' ');
             } else {
@@ -139,23 +131,13 @@ fn print_file_buffer(buff: Vec<u8>) -> String {
         for i in 0..16 {
             index = j * 16 + i;
             if index < buff.len() {
-                // print!("{}", byte_to_char(buff[index]));
                 formatted_string.push(byte_to_char(buff[index]));
             } else {
                 formatted_string.push(' ');
             }
         }
-        // println!("  |");
+
         formatted_string.push_str("  |\n");
-        
-        /* if (j + 1) % 16 == 0 {
-            println!("Enter to continue, any key to abort:");
-            answer = read_input("qwer");
-            if answer != "" {
-                println!("answer: {}", answer);
-                break;
-            }
-        } */
     }
 
     return formatted_string;
@@ -185,49 +167,15 @@ fn nybble_to_char(nybble: u8) -> char {
 }
 
 fn byte_to_char(byte: u8) -> char {
-    if byte >= 32 && byte < 128 {
+    if byte >= 32 && byte < 127 {
         return byte as char;
     } else if byte == 0 {
         return '░';
+    } else if byte == 0x7f {
+        return '▓';
     } else if byte == 255 {
         return '█';
     } else {
-        return 26 as char;
+        return '▒';
     }
 }
-
-/* fn read_input<T: std::str::FromStr>(error_message: &str) -> T {
-    // generic function that reads input and checks for type (number or text)
-    // the error handling should be here
-    let mut input: String = String::new();
-    let result: T;
-    let error: &str;
-
-    if error_message.trim() == "" {
-        error = "use correct value type, e.g. number";
-    } else {
-        error = error_message;
-    }
-
-    loop {
-        io::stdin()
-        .read_line(&mut input)
-        .expect("failed to read the line");
-
-        input = input.trim().to_string();
-
-        match input.parse::<T>() {
-            Ok(parsed_value) => {
-                result = parsed_value;
-                break;
-            },
-            Err(_) => {
-                println!("{}", error);
-                input = String::new();
-                continue;
-            },
-        };
-    }
-
-    return result;
-} */
