@@ -1,6 +1,12 @@
 use std::fs;
 use fltk::{app, prelude::*, *, enums, output::MultilineOutput};
 
+const MENU_HEIGHT: i32 = 36;
+const WIND_WIDTH: i32 = 1024;
+const WIND_HEIGHT: i32 = 512;
+const SCROLL_WIDTH: i32 = 20;
+const FONT_SIZE: i32 = 16;
+
 #[derive(Clone)]
 enum Message {
     Quit,
@@ -8,18 +14,20 @@ enum Message {
 }
 
 fn main() {
+    // let mut formatted_file: Vec<String>;
+
     let a = app::App::default();
     let (s, r) = app::channel();
     let mut wind = window::Window::new(
         256,
         128,
-        1024,
-        512,
+        WIND_WIDTH,
+        WIND_HEIGHT,
         "File Reader"
     );
     wind.set_color(enums::Color::White);
 
-    let mut menu = menu::SysMenuBar::default().with_size(wind.width(), 35);
+    let mut menu = menu::SysMenuBar::default().with_size(wind.width(), MENU_HEIGHT);
     menu.set_frame(enums::FrameType::FlatBox);
 
     menu.add_emit(
@@ -38,9 +46,12 @@ fn main() {
         Message::Quit,
     );
 
-    let mut output = output::MultilineOutput::default().with_pos(10, 45).with_size(wind.width() - 20, wind.height() - 55);
+    let mut output = output::MultilineOutput::default().with_pos(10, 45).with_size(wind.width() - 40, wind.height() - MENU_HEIGHT - 20);
     output.set_frame(enums::FrameType::FlatBox);
     output.set_text_font(enums::Font::Courier);
+    output.set_text_size(FONT_SIZE);
+
+    let mut scroll_bar = valuator::Scrollbar::default().with_size(SCROLL_WIDTH, wind.height() - MENU_HEIGHT).with_pos(wind.width() - SCROLL_WIDTH, MENU_HEIGHT);
 
     wind.end();
     wind.show();
@@ -82,7 +93,9 @@ fn open_file_dialog(output: &mut MultilineOutput) {
     }
     
     if file_name.len() > 0 {
-        let file: String = read_file(&file_name);
+        let file_data: Vec<String> = read_file(&file_name);
+
+        let file: String = concat_output_string(&file_data, 0, ((WIND_HEIGHT - MENU_HEIGHT - 20) / (FONT_SIZE + 2) - 1) as usize);
 
         return output.set_value(&file);
     }
@@ -90,7 +103,20 @@ fn open_file_dialog(output: &mut MultilineOutput) {
     return output.set_value("No file chosen");
 }
 
-fn read_file(file_path: &str) -> String {
+fn concat_output_string(file_data: &Vec<String>, first_line_index: usize, num_of_lines: usize) -> String {
+    let mut res: String = String::new();
+
+    for i in 0..num_of_lines {
+        res.push_str(&file_data[first_line_index + i]);
+        if i < num_of_lines - 1 {
+            res.push('\n');
+        }
+    }
+
+    return res;
+}
+
+fn read_file(file_path: &str) -> Vec<String> {
     let mut file_buff: Vec<u8> = Vec::new();
 
     match fs::read(file_path) {
@@ -103,11 +129,14 @@ fn read_file(file_path: &str) -> String {
     return print_file_buffer(file_buff);
 }
 
-fn print_file_buffer(buff: Vec<u8>) -> String {
+fn print_file_buffer(buff: Vec<u8>) -> Vec<String> {
     let mut index: usize;
-    let mut formatted_string: String = String::new();
+    let mut formatted_file: Vec<String> = Vec::new();
+    
 
     for j in 0..(buff.len() / 16 + 1) {
+        let mut formatted_string: String = String::new();
+
         formatted_string.push_str(&(j + 1).to_string());
         formatted_string.push_str("\t|  ");
 
@@ -137,10 +166,11 @@ fn print_file_buffer(buff: Vec<u8>) -> String {
             }
         }
 
-        formatted_string.push_str("  |\n");
+        formatted_string.push_str("  |");
+        formatted_file.push(formatted_string);
     }
 
-    return formatted_string;
+    return formatted_file;
 }
 
 fn byte_to_hex_string(byte: u8) -> String {
