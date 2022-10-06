@@ -18,6 +18,9 @@ fn main() {
 
     let a = app::App::default();
     let (s, r) = app::channel();
+
+    let icon = image::PngImage::load("assets/icon.png").unwrap();
+
     let mut wind = window::Window::new(
         256,
         128,
@@ -26,6 +29,7 @@ fn main() {
         "File Reader"
     );
     wind.set_color(enums::Color::White);
+    wind.set_icon(Some(icon));
 
     let mut menu = menu::SysMenuBar::default().with_size(wind.width(), MENU_HEIGHT);
     menu.set_frame(enums::FrameType::FlatBox);
