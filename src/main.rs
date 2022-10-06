@@ -6,6 +6,7 @@ const WIND_WIDTH: i32 = 1024;
 const WIND_HEIGHT: i32 = 512;
 const SCROLL_WIDTH: i32 = 20;
 const FONT_SIZE: i32 = 16;
+const OUTPUT_PADDING: i32 = 10;
 
 #[derive(Clone)]
 enum Message {
@@ -50,15 +51,50 @@ fn main() {
         Message::Quit,
     );
 
-    let mut output = output::MultilineOutput::default().with_pos(10, 45).with_size(wind.width() - 40, wind.height() - MENU_HEIGHT - 20);
+    let mut output = output::MultilineOutput::default();
+    output.set_pos(
+        OUTPUT_PADDING,
+        MENU_HEIGHT + OUTPUT_PADDING,
+    );
+    output.set_size(
+        wind.width() - SCROLL_WIDTH - OUTPUT_PADDING * 2,
+        wind.height() - MENU_HEIGHT - OUTPUT_PADDING * 2,
+    );
     output.set_frame(enums::FrameType::FlatBox);
     output.set_text_font(enums::Font::Courier);
     output.set_text_size(FONT_SIZE);
 
-    let mut scroll_bar = valuator::Scrollbar::default().with_size(SCROLL_WIDTH, wind.height() - MENU_HEIGHT).with_pos(wind.width() - SCROLL_WIDTH, MENU_HEIGHT);
+    let mut scroll_bar = valuator::Scrollbar::default();
+    scroll_bar.set_size(
+        SCROLL_WIDTH,
+        wind.height() - MENU_HEIGHT
+    );
+    scroll_bar.set_pos(
+        wind.width() - SCROLL_WIDTH,
+        MENU_HEIGHT
+    );
 
     wind.end();
     wind.show();
+
+    output.handle(move |_, event: enums::Event| match event {
+        enums::Event::KeyDown => {
+            let pushed_button: i32 = app::event_button();
+
+            if pushed_button == 106 {
+                println!("UP_arrow is pressed");
+                return true;
+            } else if pushed_button == 108 {
+                println!("DOWN_arrow is pressed");
+                return true;
+            }
+
+            return false;
+        }
+        _ => {
+            return false;
+        }
+    });
 
     while a.wait() {
         if let Some(msg) = r.recv() {
