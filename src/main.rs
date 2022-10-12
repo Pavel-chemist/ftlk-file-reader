@@ -1,5 +1,5 @@
 use std::fs;
-use fltk::{app, prelude::*, *, enums, output::MultilineOutput};
+use fltk::{app::{self}, prelude::*, *, enums, output::{self, MultilineOutput}};
 
 const MENU_HEIGHT: i32 = 36;
 const WIND_WIDTH: i32 = 1024;
@@ -12,10 +12,14 @@ const OUTPUT_PADDING: i32 = 10;
 enum Message {
     Quit,
     Open,
+    // OutputEvent,
+    // Scroll_down,
+    // Scroll_up,
 }
 
 fn main() {
-    // let mut formatted_file: Vec<String>;
+    let mut formatted_file: Vec<String> = vec![String::new(); 1];
+    let mut start_index: usize = 0;
 
     let a = app::App::default();
     let (s, r) = app::channel();
@@ -47,7 +51,7 @@ fn main() {
         "&File/Quit\t",
         enums::Shortcut::Ctrl | 'q',
         menu::MenuFlag::Normal,
-        s,
+        s.clone(),
         Message::Quit,
     );
 
@@ -63,6 +67,7 @@ fn main() {
     output.set_frame(enums::FrameType::FlatBox);
     output.set_text_font(enums::Font::Courier);
     output.set_text_size(FONT_SIZE);
+    // output.emit(s, Message::OutputEvent);
 
     let mut scroll_bar = valuator::Scrollbar::default();
     scroll_bar.set_size(
@@ -77,15 +82,29 @@ fn main() {
     wind.end();
     wind.show();
 
-    output.handle(move |_, event: enums::Event| match event {
+    output.handle(move |output: &mut MultilineOutput, event: enums::Event| match event {
         enums::Event::KeyDown => {
             let pushed_button: i32 = app::event_button();
 
-            if pushed_button == 106 {
-                println!("UP_arrow is pressed");
+            if pushed_button == 106 { //up arrow
+                if start_index > 0 {
+                    start_index = start_index - 1;
+                };
+
+                println!("formatted file length is {}", &formatted_file.len());
+                println!("UP_arrow is pressed, index is {}", start_index);
+                set_value_for_output(output, &formatted_file, start_index);
+
                 return true;
-            } else if pushed_button == 108 {
-                println!("DOWN_arrow is pressed");
+            } else if pushed_button == 108 { //down arrow
+                if start_index < formatted_file.len() {
+                    start_index = start_index + 1;
+                };
+
+                println!("formatted file length is {}", &formatted_file.len());
+                println!("DOWN_arrow is pressed, index is {}", start_index);
+                set_value_for_output(output, &formatted_file, start_index);
+
                 return true;
             }
 
@@ -105,8 +124,14 @@ fn main() {
                 },
                 Message::Open => {
                     println!("open the file");
-                    open_file_dialog(&mut output);
+                    formatted_file = open_file_dialog();
+                    start_index = 0;
+                    println!("there are {} lines in formatted file array", formatted_file.len());
+                    set_value_for_output(&mut output, &formatted_file, start_index);
                 },
+                /* _ => {
+                    println!("message: {:?}", event_key());
+                }, */
             }
         }
     }
@@ -114,7 +139,18 @@ fn main() {
     a.run().unwrap();
 }
 
-fn open_file_dialog(output: &mut MultilineOutput) {
+fn set_value_for_output(output: &mut output::MultilineOutput, value: &Vec<String>, start_index: usize) {
+    let shown_string: String = concat_output_string(
+        &value,
+        start_index,
+        ((WIND_HEIGHT - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as usize
+    );
+
+
+    return output.set_value(&shown_string);
+}
+
+fn open_file_dialog() -> Vec<String> {
     let mut dialog = dialog::NativeFileChooser::new(dialog::NativeFileChooserType::BrowseFile);
     dialog.show();
 
@@ -133,18 +169,26 @@ fn open_file_dialog(output: &mut MultilineOutput) {
     }
     
     if file_name.len() > 0 {
-        let file_data: Vec<String> = read_file(&file_name);
-
-        let file: String = concat_output_string(&file_data, 0, ((WIND_HEIGHT - MENU_HEIGHT - 20) / (FONT_SIZE + 2) - 1) as usize);
-
-        return output.set_value(&file);
+        return read_file(&file_name);
     }
 
-    return output.set_value("No file chosen");
+    return vec![String::from("No file chosen"); 1];
 }
 
-fn concat_output_string(file_data: &Vec<String>, first_line_index: usize, num_of_lines: usize) -> String {
+fn concat_output_string(file_data: &Vec<String>, mut first_line_index: usize, mut num_of_lines: usize) -> String {
     let mut res: String = String::new();
+    let mut last_line_index: usize = 0;
+    if file_data.len() > 0 {
+        last_line_index = file_data.len() - 1;
+    }
+
+    if first_line_index > last_line_index {
+        first_line_index = last_line_index;
+    }
+
+    if first_line_index + num_of_lines > last_line_index { //out of bound
+        num_of_lines = last_line_index - first_line_index;
+    }
 
     for i in 0..num_of_lines {
         res.push_str(&file_data[first_line_index + i]);
