@@ -1,5 +1,5 @@
 use std::fs;
-use fltk::{app::{self}, prelude::*, *, enums, output::{self, MultilineOutput}};
+use fltk::{app, prelude::*, *, enums};
 
 const MENU_HEIGHT: i32 = 36;
 const WIND_WIDTH: i32 = 1024;
@@ -12,9 +12,9 @@ const OUTPUT_PADDING: i32 = 10;
 enum Message {
     Quit,
     Open,
-    // OutputEvent,
-    // Scroll_down,
-    // Scroll_up,
+    ScrollEvent,
+    ScrollDown,
+    ScrollUp,
 }
 
 fn main() {
@@ -48,6 +48,22 @@ fn main() {
     );
 
     menu.add_emit(
+        "",
+        enums::Shortcut::Ctrl | 'd', //enums::Key::Down,
+        menu::MenuFlag::Invisible,
+        s.clone(),
+        Message::ScrollDown,
+    );
+
+    menu.add_emit(
+        "",
+        enums::Shortcut::Ctrl | 'u', //enums::Key::Up,
+        menu::MenuFlag::Invisible,
+        s.clone(),
+        Message::ScrollUp,
+    );
+
+    menu.add_emit(
         "&File/Quit\t",
         enums::Shortcut::Ctrl | 'q',
         menu::MenuFlag::Normal,
@@ -67,7 +83,6 @@ fn main() {
     output.set_frame(enums::FrameType::FlatBox);
     output.set_text_font(enums::Font::Courier);
     output.set_text_size(FONT_SIZE);
-    // output.emit(s, Message::OutputEvent);
 
     let mut scroll_bar = valuator::Scrollbar::default();
     scroll_bar.set_size(
@@ -78,42 +93,10 @@ fn main() {
         wind.width() - SCROLL_WIDTH,
         MENU_HEIGHT
     );
+    scroll_bar.emit(s.clone(), Message::ScrollEvent);
 
     wind.end();
     wind.show();
-
-    output.handle(move |output: &mut MultilineOutput, event: enums::Event| match event {
-        enums::Event::KeyDown => {
-            let pushed_button: i32 = app::event_button();
-
-            if pushed_button == 106 { //up arrow
-                if start_index > 0 {
-                    start_index = start_index - 1;
-                };
-
-                println!("formatted file length is {}", &formatted_file.len());
-                println!("UP_arrow is pressed, index is {}", start_index);
-                set_value_for_output(output, &formatted_file, start_index);
-
-                return true;
-            } else if pushed_button == 108 { //down arrow
-                if start_index < formatted_file.len() {
-                    start_index = start_index + 1;
-                };
-
-                println!("formatted file length is {}", &formatted_file.len());
-                println!("DOWN_arrow is pressed, index is {}", start_index);
-                set_value_for_output(output, &formatted_file, start_index);
-
-                return true;
-            }
-
-            return false;
-        }
-        _ => {
-            return false;
-        }
-    });
 
     while a.wait() {
         if let Some(msg) = r.recv() {
@@ -128,10 +111,36 @@ fn main() {
                     start_index = 0;
                     println!("there are {} lines in formatted file array", formatted_file.len());
                     set_value_for_output(&mut output, &formatted_file, start_index);
+
+                    scroll_bar.set_minimum(0.0);
+                    scroll_bar.set_maximum(formatted_file.len() as f64);
+                    scroll_bar.set_slider_size((((WIND_HEIGHT - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as f32) / (formatted_file.len() as f32));
+                    scroll_bar.set_step(1.0, 1);
                 },
-                /* _ => {
-                    println!("message: {:?}", event_key());
-                }, */
+                Message::ScrollEvent => {
+                    println!("event in scroll bar: {:?}", app::event());
+                    println!("scroll bar value is {}", scroll_bar.value());
+                    set_value_for_output(&mut output, &formatted_file, scroll_bar.value() as usize);
+                },
+                Message::ScrollDown => {
+                    if start_index < formatted_file.len() - 2 {
+                        start_index = start_index + 1;
+                    };
+    
+                    println!("formatted file length is {}", &formatted_file.len());
+                    println!("scrolling down, index is {}", start_index);
+                    set_value_for_output(&mut output, &formatted_file, start_index);
+                },
+                Message::ScrollUp => {
+                    if start_index > 0 {
+                        start_index = start_index - 1;
+                    };
+
+                    println!("formatted file length is {}", &formatted_file.len());
+                    
+                    println!("scrolling up, index is {}", start_index);
+                    set_value_for_output(&mut output, &formatted_file, start_index);
+                },
             }
         }
     }
