@@ -2,8 +2,8 @@ use std::fs;
 use fltk::{app, prelude::*, *, enums};
 
 const MENU_HEIGHT: i32 = 36;
-const WIND_WIDTH: i32 = 1024;
-const WIND_HEIGHT: i32 = 512;
+const WIND_WIDTH: i32 = 920;
+const WIND_HEIGHT: i32 = 960;
 const SCROLL_WIDTH: i32 = 20;
 const FONT_SIZE: i32 = 16;
 const OUTPUT_PADDING: i32 = 10;
@@ -15,13 +15,12 @@ enum Message {
     ScrollEvent,
     ScrollDown,
     ScrollUp,
-    WindowResize,
 }
 
 fn main() {
     let mut formatted_file: Vec<String> = vec![String::new(); 1];
     let mut start_index: usize = 0;
-    let mut num_of_lines: usize = ((WIND_HEIGHT - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as usize;
+    let num_of_lines: usize = ((WIND_HEIGHT - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 3)) as usize;
 
     let a = app::App::default();
     let (s, r) = app::channel();
@@ -29,8 +28,8 @@ fn main() {
     let icon = image::PngImage::load("assets/icon.png").unwrap();
 
     let mut wind = window::Window::new(
-        256,
-        128,
+        0,
+        0,
         WIND_WIDTH,
         WIND_HEIGHT,
         "File Reader"
@@ -101,33 +100,8 @@ fn main() {
     scroll_bar.set_step(1.0, 1);
     scroll_bar.emit(s.clone(), Message::ScrollEvent);
 
-    wind.make_resizable(true);
-    wind.resizable(&output);
-    
-
     wind.end();
     wind.show();
-
-    /* output.resize_callback(|_| {
-        println!("resizing");
-    }); */
-
-    wind.handle(move |win, ev| match ev {
-        enums::Event::Resize => {
-            // num_of_lines = ((win.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as usize;
-
-            // println!("A resize happening: x:{}, y:{}, w:{}, h:{}", win.x(), win.y(), win.width(), win.height());
-            // wv_a.set_size(f.width(), f.height(), SizeHint::None);
-
-            win.emit(s.clone(), Message::WindowResize);
-            // set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
-
-            return true;
-        },
-        _ => {
-            return false;
-        }
-    });
 
     while a.wait() {
         if let Some(msg) = r.recv() {
@@ -140,15 +114,15 @@ fn main() {
                     println!("open the file");
                     formatted_file = open_file_dialog();
                     start_index = 0;
-                    println!("there are {} lines in formatted file array", formatted_file.len());
+                    // println!("there are {} lines in formatted file array", formatted_file.len());
                     set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
 
                     scroll_bar.set_maximum(formatted_file.len() as f64);
-                    scroll_bar.set_slider_size((((wind.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as f32) / (formatted_file.len() as f32));
+                    scroll_bar.set_slider_size((((wind.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 3)) as f32) / (formatted_file.len() as f32));
                 },
                 Message::ScrollEvent => {
-                    println!("event in scroll bar: {:?}", app::event());
-                    println!("scroll bar value is {}", scroll_bar.value());
+                    // println!("event in scroll bar: {:?}", app::event());
+                    // println!("scroll bar value is {}", scroll_bar.value());
                     set_value_for_output(&mut output, &formatted_file, scroll_bar.value() as usize, num_of_lines);
                 },
                 Message::ScrollDown => {
@@ -156,8 +130,8 @@ fn main() {
                         start_index = start_index + 1;
                     };
     
-                    println!("formatted file length is {}", &formatted_file.len());
-                    println!("scrolling down, index is {}", start_index);
+                    // println!("formatted file length is {}", &formatted_file.len());
+                    // println!("scrolling down, index is {}", start_index);
                     set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
                     scroll_bar.set_value(start_index as f64);
                 },
@@ -166,15 +140,12 @@ fn main() {
                         start_index = start_index - 1;
                     };
 
-                    println!("formatted file length is {}", &formatted_file.len());
+                    // println!("formatted file length is {}", &formatted_file.len());
                     
-                    println!("scrolling up, index is {}", start_index);
+                    // println!("scrolling up, index is {}", start_index);
                     set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
                     scroll_bar.set_value(start_index as f64);
                 },
-                Message::WindowResize => {
-                    println!("window event: {:?}", app::event());
-                }
             }
         }
     }
