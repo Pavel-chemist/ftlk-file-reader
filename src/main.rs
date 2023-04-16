@@ -7,6 +7,7 @@ const WIND_HEIGHT: i32 = 960;
 const SCROLL_WIDTH: i32 = 20;
 const FONT_SIZE: i32 = 16;
 const OUTPUT_PADDING: i32 = 10;
+const PROGRAM_NAME: &str = "File Reader";
 
 #[derive(Clone)]
 enum Message {
@@ -17,8 +18,17 @@ enum Message {
     ScrollUp,
 }
 
+struct FormattedFile {
+    name: String,
+    line_buffer: Vec<String>,
+}
+
 fn main() {
-    let mut formatted_file: Vec<String> = vec![String::new(); 1];
+    let mut formatted_file = FormattedFile{
+        name: String::from(""),
+        line_buffer: vec![String::new(); 1],
+    };
+
     let mut start_index: usize = 0;
     let num_of_lines: usize = ((WIND_HEIGHT - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 3)) as usize;
 
@@ -32,7 +42,7 @@ fn main() {
         0,
         WIND_WIDTH,
         WIND_HEIGHT,
-        "File Reader"
+        PROGRAM_NAME,
     );
     wind.set_color(enums::Color::White);
     wind.set_icon(Some(icon));
@@ -107,32 +117,28 @@ fn main() {
         if let Some(msg) = r.recv() {
             match msg {
                 Message::Quit => {
-                    println!("quit app");
                     fltk::app::quit();
                 },
                 Message::Open => {
-                    println!("open the file");
                     formatted_file = open_file_dialog();
                     start_index = 0;
-                    // println!("there are {} lines in formatted file array", formatted_file.len());
-                    set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
 
-                    scroll_bar.set_maximum(formatted_file.len() as f64);
-                    scroll_bar.set_slider_size((((wind.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 3)) as f32) / (formatted_file.len() as f32));
+                    wind.set_label(&(PROGRAM_NAME.to_string() + "  --  " + &formatted_file.name));
+
+                    set_value_for_output(&mut output, &formatted_file.line_buffer, start_index, num_of_lines);
+
+                    scroll_bar.set_maximum(formatted_file.line_buffer.len() as f64);
+                    scroll_bar.set_slider_size((((wind.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 3)) as f32) / (formatted_file.line_buffer.len() as f32));
                 },
                 Message::ScrollEvent => {
-                    // println!("event in scroll bar: {:?}", app::event());
-                    // println!("scroll bar value is {}", scroll_bar.value());
-                    set_value_for_output(&mut output, &formatted_file, scroll_bar.value() as usize, num_of_lines);
+                    set_value_for_output(&mut output, &formatted_file.line_buffer, scroll_bar.value() as usize, num_of_lines);
                 },
                 Message::ScrollDown => {
-                    if formatted_file.len() > 2 && start_index < formatted_file.len() - 2 {
+                    if formatted_file.line_buffer.len() > 2 && start_index < formatted_file.line_buffer.len() - 2 {
                         start_index = start_index + 1;
                     };
     
-                    // println!("formatted file length is {}", &formatted_file.len());
-                    // println!("scrolling down, index is {}", start_index);
-                    set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
+                    set_value_for_output(&mut output, &formatted_file.line_buffer, start_index, num_of_lines);
                     scroll_bar.set_value(start_index as f64);
                 },
                 Message::ScrollUp => {
@@ -140,10 +146,7 @@ fn main() {
                         start_index = start_index - 1;
                     };
 
-                    // println!("formatted file length is {}", &formatted_file.len());
-                    
-                    // println!("scrolling up, index is {}", start_index);
-                    set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
+                    set_value_for_output(&mut output, &formatted_file.line_buffer, start_index, num_of_lines);
                     scroll_bar.set_value(start_index as f64);
                 },
             }
@@ -169,11 +172,9 @@ fn set_value_for_output(
     return output.set_value(&shown_string);
 }
 
-fn open_file_dialog() -> Vec<String> {
+fn open_file_dialog() -> FormattedFile {
     let mut dialog = dialog::NativeFileChooser::new(dialog::NativeFileChooserType::BrowseFile);
     dialog.show();
-
-    println!("{:?}", dialog.filename());
 
     let file_name: String = dialog.filename().into_os_string().into_string().unwrap();
 
@@ -191,7 +192,7 @@ fn open_file_dialog() -> Vec<String> {
         return read_file(&file_name);
     }
 
-    return vec![String::from("No file chosen"); 1];
+    return FormattedFile{name: String::from("No file chosen"), line_buffer: vec![String::from(""); 1]};
 }
 
 fn concat_output_string(file_data: &Vec<String>, mut first_line_index: usize, mut num_of_lines: usize) -> String {
@@ -219,7 +220,7 @@ fn concat_output_string(file_data: &Vec<String>, mut first_line_index: usize, mu
     return res;
 }
 
-fn read_file(file_path: &str) -> Vec<String> {
+fn read_file(file_path: &str) -> FormattedFile {
     let mut file_buff: Vec<u8> = Vec::new();
 
     match fs::read(file_path) {
@@ -229,12 +230,12 @@ fn read_file(file_path: &str) -> Vec<String> {
         }
     };
 
-    return print_file_buffer(file_buff);
+    return print_file_buffer(file_buff, file_path);
 }
 
-fn print_file_buffer(buff: Vec<u8>) -> Vec<String> {
+fn print_file_buffer(buff: Vec<u8>, name: &str) -> FormattedFile {
     let mut index: usize;
-    let mut formatted_file: Vec<String> = Vec::new();
+    let mut formatted_file: FormattedFile = FormattedFile { name: String::from(name), line_buffer: Vec::new() };
     
 
     for j in 0..(buff.len() / 16 + 1) {
@@ -270,7 +271,7 @@ fn print_file_buffer(buff: Vec<u8>) -> Vec<String> {
         }
 
         formatted_string.push_str("  |");
-        formatted_file.push(formatted_string);
+        formatted_file.line_buffer.push(formatted_string);
     }
 
     return formatted_file;
