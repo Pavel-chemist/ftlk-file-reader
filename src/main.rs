@@ -1,5 +1,5 @@
 use std::fs;
-use fltk::{app, prelude::*, *, enums};
+use fltk::{app, prelude::*, *, enums::{self, Event}};
 
 const MENU_HEIGHT: i32 = 36;
 const WIND_WIDTH: i32 = 1024;
@@ -15,7 +15,7 @@ enum Message {
     ScrollEvent,
     ScrollDown,
     ScrollUp,
-    WindowResize,
+    WindowResize(Event),
 }
 
 fn main() {
@@ -112,16 +112,17 @@ fn main() {
         println!("resizing");
     }); */
 
-    wind.handle(move |win, ev| match ev {
+    wind.handle(move |_, ev| match ev {
         enums::Event::Resize => {
             // num_of_lines = ((win.height() - MENU_HEIGHT - OUTPUT_PADDING * 2) / (FONT_SIZE + 2) - 1) as usize;
 
             // println!("A resize happening: x:{}, y:{}, w:{}, h:{}", win.x(), win.y(), win.width(), win.height());
             // wv_a.set_size(f.width(), f.height(), SizeHint::None);
 
-            win.emit(s.clone(), Message::WindowResize);
+            // win.emit(s.clone(), Message::WindowResize);
             // set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
 
+            s.send(Message::WindowResize(ev));
             return true;
         },
         _ => {
@@ -172,8 +173,9 @@ fn main() {
                     set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
                     scroll_bar.set_value(start_index as f64);
                 },
-                Message::WindowResize => {
-                    println!("window event: {:?}", app::event());
+                Message::WindowResize(ev) => {
+                    println!("window event: {:?}", ev);
+                    println!("A resize happening: x:{}, y:{}, w:{}, h:{}", wind.x(), wind.y(), wind.width(), wind.height());
                 }
             }
         }
