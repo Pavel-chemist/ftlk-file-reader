@@ -174,8 +174,8 @@ fn main() {
                     scroll_bar.set_value(start_index as f64);
                 },
                 Message::WindowResize(ev) => {
-                    println!("window event: {:?}", ev);
                     println!("A resize happening: x:{}, y:{}, w:{}, h:{}", wind.x(), wind.y(), wind.width(), wind.height());
+                    set_value_for_output(&mut output, &formatted_file, start_index, num_of_lines);
                 }
             }
         }
